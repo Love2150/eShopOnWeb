@@ -5,11 +5,11 @@ on: workflow_dispatch
 
 #Environment variables https://docs.github.com/en/actions/learn-github-actions/environment-variables
 env:
- RESOURCE-GROUP: rg-eshoponweb-eastus
- LOCATION: eastus
- TEMPLATE_FILE: infra/webapp.bicep
- SUBSCRIPTION_ID: 7a141c27-f8ab-4492-b9c2-819f2a06cf91
- WEBAPP_NAME: devops-webapp-eastus-1116513815
+  RESOURCE_GROUP: rg-eshoponweb-eastus
+  LOCATION: eastus
+  TEMPLATE_FILE: infra/webapp.bicep
+  SUBSCRIPTION_ID: 7a141c27-f8ab-4492-b9c2-819f2a06cf91
+  WEBAPP_NAME: devops-webapp-eastus-1116513815
 
 jobs:
   #Build, test and publish .net web project in repository
@@ -75,13 +75,21 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      # Ensure resource group exists
+      - name: Ensure resource group exists
+        uses: Azure/cli@v2
+        with:
+          inlineScript: |
+            az account set --subscription ${{ env.SUBSCRIPTION_ID }}
+            az group create --name ${{ env.RESOURCE_GROUP }} --location ${{ env.LOCATION }}
+
       # Deploy Azure WebApp using Bicep file
       - name: deploy
         uses: azure/arm-deploy@v2
         with:
           subscriptionId: ${{ env.SUBSCRIPTION_ID }}
           resourceGroupName: ${{ env.RESOURCE_GROUP }}
-          template: bicep-template/webapp.bicep
+          template: bicep-template/infra/webapp.bicep
           parameters: "webAppName=${{ env.WEBAPP_NAME }} location=${{ env.LOCATION }}"
           failOnStdErr: false
 
@@ -100,4 +108,4 @@ jobs:
         uses: Azure/cli@v2
         with:
           inlineScript: |
-            az webapp deploy --name ${{ env.WEBAPP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --src-path .net-app/app.zip --type zip
+            az webapp deploy --name ${{ env.WEBAPP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --src-path .net-app/app.zip --type ziph
